@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">
+    <rect width="640" height="360" fill="#9d174d"/>
+    <circle cx="320" cy="150" r="52" fill="#ffffff" fill-opacity="0.15"/>
+    <path d="M305 120 L305 180 L355 150 Z" fill="white"/>
+    <text x="320" y="265" text-anchor="middle" fill="white"
+          font-size="30" font-family="Arial" font-weight="bold">
+      VISTELQ SAMPLE 07
+    </text>
+    </svg>

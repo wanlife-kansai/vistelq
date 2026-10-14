@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  externalId  String?
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  brand       String?
+  categoryId  String?
+  categoryIds String[]  @default([])
+  price       Int?
+  rating      Float?
+  reviewCount Int       @default(0)
+  popularity  Int       @default(0)
+  stockStatus String    @default("unknown")
+  releaseDate DateTime?
+  isPublished Boolean   @default(false)
+
+  images ProductImage[]
+  offers ProductOffer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([popularity])
+  @@index([createdAt])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductOffer {
+  id           String  @id @default(cuid())
+  productId    String
+  asp          String
+  externalId   String?
+  affiliateUrl String  @db.Text
+  price        Int?
+  isActive     Boolean @default(true)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([asp])
+}
+
+// ------------------------------------------------------------
+// 動画系テーブル（旧「動画販売サイト(Projects)」から統合）
+// 既存のNeonのテーブル構造と同一。テーブルや列は変更しません。
+// ------------------------------------------------------------
+
+model Work {
+  offers       Offer[]
+  actresses    WorkActress[]
+  genres       WorkGenre[]
+  id           String        @id
+  title        String
+  summary      String
+  actressSlug  String
+  actressName  String
+  genreSlug    String
+  genreName    String
+  price        Int
+  rating       Float
+  reviewCount  Int
+  releasedAt   DateTime
+  affiliateUrl String?
+  coverUrl     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  source       String        @default("demo")
+  fetchedAt    DateTime?
+
+  @@index([actressSlug])
+  @@index([genreSlug])
+  @@index([reviewCount])
+}
+
+model Actress {
+  slug  String        @id
+  name  String
+  works WorkActress[]
+}
+
+model Genre {
+  slug  String      @id
+  name  String
+  works WorkGenre[]
+}
+
+model WorkActress {
+  workId      String
+  actressSlug String
+
+  work    Work    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  actress Actress @relation(fields: [actressSlug], references: [slug])
+
+  @@id([workId, actressSlug])
+  @@index([actressSlug])
+}
+
+model WorkGenre {
+  workId    String
+  genreSlug String
+
+  work  Work  @relation(fields: [workId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreSlug], references: [slug])
+
+  @@id([workId, genreSlug])
+  @@index([genreSlug])
+}
+
+model Asp {
+  id      String  @id @default(cuid())
+  code    String  @unique
+  name    String
+  enabled Boolean @default(true)
+  offers  Offer[]
+}
+
+model Offer {
+  id           String   @id @default(cuid())
+  workId       String
+  aspId        String
+  externalId   String
+  price        Int?
+  affiliateUrl String?
+  imageUrl     String?
+  available    Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
+
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+  asp  Asp  @relation(fields: [aspId], references: [id])
+
+  @@unique([aspId, externalId])
+  @@index([workId])
+}
+
+model AffiliateClick {
+  id        String   @id @default(cuid())
+  workId    String
+  aspId     String
+  createdAt DateTime @default(now())
+
+  @@index([workId, createdAt])
+  @@index([aspId, createdAt])
+}

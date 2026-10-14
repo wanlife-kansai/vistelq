@@ -6,17 +6,40 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "prisma generate --config prisma7.config.ts",
+    "db:deploy": "prisma migrate deploy --config prisma7.config.ts",
+    "typecheck": "tsc --noEmit",
+    "asp:seed": "tsx --env-file=.env.local scripts/seed-asp.ts",
+    "mgs:register": "tsx --env-file=.env.local scripts/register-mgs.ts",
+    "mgs:register-bulk": "tsx --env-file=.env.local scripts/register-mgs-bulk.ts",
+    "mgs:backfill": "tsx --env-file=.env.local scripts/backfill-relations.ts",
+    "mgs:collect": "node scripts/collect-mgs.js",
+    "mgs:collect-new": "node scripts/collect-mgs-new.js",
+    "test:importers": "tsx scripts/test-mapper.ts && tsx scripts/test-validation.ts && tsx scripts/test-missing-date.ts && tsx scripts/test-fanza-import-result.ts && tsx scripts/test-fanza-pipeline-errors.ts && tsx scripts/test-fanza-pipeline-integration.ts && tsx scripts/test-fanza-import-lock.ts && tsx scripts/test-fanza-cron.ts",
+    "test:importers:db": "tsx --env-file=.env.local scripts/test-import.ts && tsx --env-file=.env.local scripts/test-multi-import.ts && tsx --env-file=.env.local scripts/test-rollback.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "better-auth": "^1.7.7",
     "next": "16.4.0",
+    "pg": "^8.23.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "dotenv": "^17.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "tailwindcss": "^4"
+    "playwright": "^1.64.0",
+    "prisma": "7.10.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
   }
 }

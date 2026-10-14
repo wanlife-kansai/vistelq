@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="画像準備中">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b1030"/>
+      <stop offset="1" stop-color="#3b1d6e"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#g)"/>
+  <text x="320" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="900" fill="#a78bfa" opacity="0.55">VISTELQ</text>
+</svg>

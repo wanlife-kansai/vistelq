@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# 不要なファイル
+*.bak
+*.before-*
+page.backup.*
+page.safe-backup.txt
+.agents/
+.claude/
+.windsurf/
+patch-vistelq-goods.cjs
+skills-lock.json
