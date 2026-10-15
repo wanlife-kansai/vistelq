@@ -172,27 +172,11 @@ function VideoSection({ title, items = [], ranking = false, slider = false }) {
                 : "overflow-hidden rounded-xl bg-zinc-900"
             }
           >
-            {ranking && (
-              <span
-                aria-hidden="true"
-                className={`pointer-events-none absolute top-1/2 z-0 -translate-y-1/2 select-none font-black leading-none text-transparent ${
-                  index + 1 >= 10
-                    ? "left-0 text-[115px] sm:text-[140px]"
-                    : "-left-1 text-[180px] sm:text-[220px]"
-                }`}
-                style={{
-                  WebkitTextStroke: "3px #666",
-                }}
-              >
-                {index + 1}
-              </span>
-            )}
-
             <Link
               href={`/works/${video.id}`}
               className={
                 ranking
-                  ? "relative z-10 ml-[30%] flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl bg-zinc-800"
+                  ? "relative z-10 flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-zinc-800"
                   : "relative flex aspect-video items-center justify-center overflow-hidden bg-gradient-to-br from-purple-900 to-zinc-800"
               }
             >
@@ -204,7 +188,17 @@ function VideoSection({ title, items = [], ranking = false, slider = false }) {
                   event.currentTarget.style.display = "none";
                 }}
               />
-              <span className="text-4xl">▶</span>
+              {ranking ? (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-3 left-2 z-20 select-none text-[76px] font-black leading-none text-transparent drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] sm:text-[92px]"
+                  style={{ WebkitTextStroke: "2px rgba(255,255,255,0.9)" }}
+                >
+                  {index + 1}
+                </span>
+              ) : (
+                <span className="text-4xl">▶</span>
+              )}
 
 
 

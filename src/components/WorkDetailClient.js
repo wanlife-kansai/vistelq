@@ -162,6 +162,7 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
               </span>
             </div>
 
+            {images.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-2">
               {images.map((image, index) => (
                 <button
@@ -182,6 +183,7 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
                 </button>
               ))}
             </div>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
               <span>再生時間：{work.duration || "未登録"}</span>
@@ -190,6 +192,18 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
                   ? "サンプル動画を再生できます"
                   : "動画データはASP連携後に表示されます"}
               </span>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-5">
+              {details.map(([label, value]) => (
+                <div
+                  key={label}
+                  className="grid grid-cols-[100px_1fr] gap-3 border-b border-white/10 py-3 text-sm last:border-0"
+                >
+                  <span className="text-zinc-400">{label}</span>
+                  <span>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -224,18 +238,6 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
               >
                 {favorite ? "♥ お気に入り登録済み" : "♡ お気に入り"}
               </button>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-5">
-              {details.map(([label, value]) => (
-                <div
-                  key={label}
-                  className="grid grid-cols-[100px_1fr] gap-3 border-b border-white/10 py-3 text-sm last:border-0"
-                >
-                  <span className="text-zinc-400">{label}</span>
-                  <span>{value}</span>
-                </div>
-              ))}
             </div>
 
             <div className="space-y-5 rounded-2xl border border-purple-500/40 bg-gradient-to-br from-[#21132f] via-zinc-900 to-[#101018] p-6 shadow-[0_0_35px_rgba(139,92,246,0.12)]">

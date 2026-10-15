@@ -17,7 +17,9 @@
     "mgs:collect": "node scripts/collect-mgs.js",
     "mgs:collect-new": "node scripts/collect-mgs-new.js",
     "test:importers": "tsx scripts/test-mapper.ts && tsx scripts/test-validation.ts && tsx scripts/test-missing-date.ts && tsx scripts/test-fanza-import-result.ts && tsx scripts/test-fanza-pipeline-errors.ts && tsx scripts/test-fanza-pipeline-integration.ts && tsx scripts/test-fanza-import-lock.ts && tsx scripts/test-fanza-cron.ts",
-    "test:importers:db": "tsx --env-file=.env.local scripts/test-import.ts && tsx --env-file=.env.local scripts/test-multi-import.ts && tsx --env-file=.env.local scripts/test-rollback.ts"
+    "test:importers:db": "tsx --env-file=.env.local scripts/test-import.ts && tsx --env-file=.env.local scripts/test-multi-import.ts && tsx --env-file=.env.local scripts/test-rollback.ts",
+    "mgs:collect-media": "node scripts/collect-mgs-media.js",
+    "mgs:apply-media": "tsx --env-file=.env.local scripts/apply-mgs-media.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
