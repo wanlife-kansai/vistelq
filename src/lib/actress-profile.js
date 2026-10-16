@@ -31,3 +31,24 @@ export async function getActressProfile(slug) {
     return null;
   }
 }
+
+// 一覧ページ用：女優スラッグ → 画像URL（画像のある女優だけ）
+export async function getActressImages() {
+  "use cache";
+
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const rows = await prisma.$queryRaw`
+      SELECT slug, "imageUrl" FROM "Actress"
+      WHERE "imageUrl" IS NOT NULL
+      LIMIT 3000
+    `;
+
+    cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
+    return Object.fromEntries(rows.map((row) => [row.slug, row.imageUrl]));
+  } catch (error) {
+    console.error("女優画像の取得に失敗しました:", error?.message ?? error);
+    cacheLife("seconds");
+    return {};
+  }
+}

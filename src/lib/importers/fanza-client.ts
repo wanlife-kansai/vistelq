@@ -1,6 +1,14 @@
 const API_URL = 'https://api.dmm.com/affiliate/v3/ItemList';
 
-export async function fetchFanzaItems(): Promise<unknown> {
+export type FanzaFetchOptions = {
+  hits?: number; // 1回の取得件数（1〜100、既定10）
+  offset?: number; // 取得開始位置（1〜、既定1）
+  sort?: 'date' | 'rank' | 'review' | 'price'; // 並び順（既定は API の初期値）
+};
+
+export async function fetchFanzaItems(
+  options: FanzaFetchOptions = {}
+): Promise<unknown> {
   const apiId = process.env.FANZA_API_ID;
   const affiliateId = process.env.FANZA_AFFILIATE_ID;
 
@@ -16,8 +24,12 @@ export async function fetchFanzaItems(): Promise<unknown> {
     site: 'FANZA',
     service: 'digital',
     floor: 'videoa',
-    hits: '10',
+    hits: String(Math.min(Math.max(Math.trunc(options.hits ?? 10), 1), 100)),
     output: 'json',
+    ...(options.offset && options.offset > 1
+      ? { offset: String(Math.trunc(options.offset)) }
+      : {}),
+    ...(options.sort ? { sort: options.sort } : {}),
   };
 
   for (const [key, value] of Object.entries(params)) {
