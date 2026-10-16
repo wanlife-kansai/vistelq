@@ -138,7 +138,9 @@ export default function VideosPage({ mode = "normal" }) {
         : [];
 
       const matchesGenre =
-        genre === "すべて" || workGenres.includes(genre);
+        genre === "すべて" ||
+        genre === "人気順" ||
+        workGenres.includes(genre);
 
       return matchesKeyword && matchesGenre;
     });
