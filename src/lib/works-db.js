@@ -91,6 +91,7 @@ export function mapWorkRow(row) {
     genres,
     description: row.summary ?? "",
     price,
+    sampleEmbedUrl: row.sampleMovieUrl || undefined,
     affiliateUrl: canRedirect ? buildOutUrl(row.id, aspCode) : null,
   };
 }
@@ -115,6 +116,7 @@ async function fetchWorksFromDb() {
       w."reviewCount",
       w."releasedAt",
       w."coverUrl",
+      w."sampleMovieUrl",
       w.source,
       COALESCE((
         SELECT json_agg(json_build_object('slug', a.slug, 'name', a.name) ORDER BY a.name)

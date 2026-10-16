@@ -22,6 +22,7 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
   const [activeTab, setActiveTab] = useState("info");
   const [favorite, setFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [playing, setPlaying] = useState(false);
 
   const images =
     Array.isArray(work.sampleImages) && work.sampleImages.length
@@ -133,27 +134,52 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
                   playsInline
                   preload="metadata"
                   poster={images[selectedImage]}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                 >
                   <source src={work.sampleVideoUrl} />
                   お使いのブラウザでは動画を再生できません。
                 </video>
+              ) : work.sampleEmbedUrl && playing ? (
+                <iframe
+                  src={work.sampleEmbedUrl}
+                  title={`${work.title} サンプル動画`}
+                  className="absolute inset-0 h-full w-full border-0"
+                  allow="autoplay; fullscreen"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
               ) : (
                 <>
                   <img
                     src={images[selectedImage]}
                     alt={work.title}
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-cover"
                   />
 
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40 bg-purple-700/80 text-3xl shadow-xl">
-                      ▶
+                  {work.sampleEmbedUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setPlaying(true)}
+                      aria-label="サンプル動画を再生"
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20 transition hover:bg-black/10"
+                    >
+                      <span className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40 bg-purple-700/80 text-3xl shadow-xl">
+                        ▶
+                      </span>
+                      <span className="rounded-full bg-black/70 px-4 py-2 text-xs text-zinc-200">
+                        サンプル動画を再生
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40 bg-purple-700/80 text-3xl shadow-xl">
+                        ▶
+                      </div>
+                      <span className="rounded-full bg-black/70 px-4 py-2 text-xs text-zinc-200">
+                        サンプル動画準備中
+                      </span>
                     </div>
-                    <span className="rounded-full bg-black/70 px-4 py-2 text-xs text-zinc-200">
-                      サンプル動画準備中
-                    </span>
-                  </div>
+                  )}
                 </>
               )}
 
@@ -188,7 +214,7 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
               <span>再生時間：{work.duration || "未登録"}</span>
               <span>
-                {work.sampleVideoUrl
+                {work.sampleVideoUrl || work.sampleEmbedUrl
                   ? "サンプル動画を再生できます"
                   : "動画データはASP連携後に表示されます"}
               </span>

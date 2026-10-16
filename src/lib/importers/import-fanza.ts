@@ -16,6 +16,7 @@ export type FanzaWorkInput = {
   releasedAt: string;
   affiliateUrl: string | null;
   coverUrl: string | null;
+  sampleMovieUrl?: string | null;
 };
 
 export async function importFanzaWorks(
@@ -54,6 +55,7 @@ export async function importFanzaWorks(
       releasedAt: new Date(work.releasedAt),
       affiliateUrl: work.affiliateUrl,
       coverUrl: work.coverUrl,
+      sampleMovieUrl: work.sampleMovieUrl ?? null,
       source: 'fanza',
       fetchedAt: new Date(),
     };

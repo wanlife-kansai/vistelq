@@ -24,8 +24,9 @@ async function main() {
       }
       let cover = '（画像なし）';
       if (work.coverUrl) cover = new URL(work.coverUrl).host;
+      const sample = work.sampleMovieUrl ? new URL(work.sampleMovieUrl).host : 'なし';
       console.log(
-        `OK  ${work.id} | ${work.price}円 | ${work.releasedAt} | 女優:${work.actressName} | ${work.title.slice(0, 40)}\n    画像:${cover} / リンク:${link}`
+        `OK  ${work.id} | ${work.price}円 | ${work.releasedAt} | 女優:${work.actressName} | ${work.title.slice(0, 40)}\n    画像:${cover} / リンク:${link} / サンプル動画:${sample}`
       );
       ok++;
     } catch (e) {

@@ -8,6 +8,12 @@ type FanzaItem = {
   date?: string;
   price?: string | number;
   affiliateURL?: string;
+  sampleMovieURL?: {
+    size_476_306?: string;
+    size_560_360?: string;
+    size_644_414?: string;
+    size_720_480?: string;
+  };
   imageURL?: {
     large?: string;
     list?: string;
@@ -64,6 +70,28 @@ function buildAffiliateUrl(raw: string | undefined): string | null {
     return url.toString();
   } catch {
     return raw;
+  }
+}
+
+// サンプル動画（埋め込み用ページのURL）。DMMの公式ドメイン(https)だけを受け付ける。
+function buildSampleMovieUrl(item: FanzaItem): string | null {
+  const m = item.sampleMovieURL;
+  const raw = m?.size_720_480 || m?.size_644_414 || m?.size_560_360 || m?.size_476_306;
+  if (!raw) return null;
+
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== 'https:' || !(host === 'dmm.co.jp' || host.endsWith('.dmm.co.jp'))) {
+      return null;
+    }
+    const linkId = process.env.FANZA_LINK_AFFILIATE_ID?.trim();
+    if (linkId) {
+      return url.toString().replace(/affi_id=[^/&]+/, `affi_id=${linkId}`);
+    }
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
@@ -132,6 +160,7 @@ export function mapFanzaItem(item: FanzaItem): FanzaWorkInput {
     releasedAt: date,
     affiliateUrl: buildAffiliateUrl(item.affiliateURL),
     coverUrl: item.imageURL?.large || item.imageURL?.list || null,
+    sampleMovieUrl: buildSampleMovieUrl(item),
     actresses,
     genres,
   };

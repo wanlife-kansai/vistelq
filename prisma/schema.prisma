@@ -91,6 +91,7 @@ model Work {
   updatedAt    DateTime      @updatedAt
   source       String        @default("demo")
   fetchedAt    DateTime?
+  sampleMovieUrl String?
 
   @@index([actressSlug])
   @@index([genreSlug])
