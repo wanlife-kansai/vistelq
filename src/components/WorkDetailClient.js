@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import MgsWidget from "@/components/MgsWidget";
 import {
@@ -23,6 +23,26 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
   const [favorite, setFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const boxRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  // サンプル動画の埋め込みページは、URLの size=幅_高さ の固定サイズで作られている。
+  // そのサイズのまま表示して、枠の幅に合わせて拡大縮小する（中でスクロールさせない）。
+  const embedSize = useMemo(() => {
+    const m = /size=(\d+)_(\d+)/.exec(work.sampleEmbedUrl || "");
+    return m ? { w: Number(m[1]), h: Number(m[2]) } : { w: 720, h: 480 };
+  }, [work.sampleEmbedUrl]);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || !work.sampleEmbedUrl) return;
+    const update = () => setScale(el.clientWidth / embedSize.w);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [work.sampleEmbedUrl, embedSize.w]);
 
   const images =
     Array.isArray(work.sampleImages) && work.sampleImages.length
@@ -125,7 +145,17 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
 
           {/* 左：プレビュー */}
           <div className="space-y-4">
-            <div className="relative aspect-video overflow-hidden rounded-2xl border border-purple-500/30 bg-black shadow-[0_0_40px_rgba(139,92,246,0.12)]">
+            <div
+              ref={boxRef}
+              style={
+                work.sampleEmbedUrl
+                  ? { aspectRatio: `${embedSize.w} / ${embedSize.h}` }
+                  : undefined
+              }
+              className={`relative overflow-hidden rounded-2xl border border-purple-500/30 bg-black shadow-[0_0_40px_rgba(139,92,246,0.12)] ${
+                work.sampleEmbedUrl ? "" : "aspect-video"
+              }`}
+            >
 
               {work.sampleVideoUrl ? (
                 <video
@@ -143,7 +173,14 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
                 <iframe
                   src={work.sampleEmbedUrl}
                   title={`${work.title} サンプル動画`}
-                  className="absolute inset-0 h-full w-full border-0"
+                  scrolling="no"
+                  style={{
+                    width: embedSize.w,
+                    height: embedSize.h,
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top left",
+                  }}
+                  className="absolute left-0 top-0 max-w-none border-0"
                   allow="autoplay; fullscreen"
                   allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
