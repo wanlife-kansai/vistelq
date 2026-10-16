@@ -207,6 +207,21 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
                         サンプル動画を再生
                       </span>
                     </button>
+                  ) : work.affiliateUrl ? (
+                    <a
+                      href={work.affiliateUrl}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      aria-label={`${work.asp}でサンプルを見る`}
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20 transition hover:bg-black/10"
+                    >
+                      <span className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40 bg-purple-700/80 text-3xl shadow-xl">
+                        ▶
+                      </span>
+                      <span className="rounded-full bg-black/70 px-4 py-2 text-xs text-zinc-200">
+                        {work.asp}でサンプルを見る ↗
+                      </span>
+                    </a>
                   ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20">
                       <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/40 bg-purple-700/80 text-3xl shadow-xl">
@@ -253,6 +268,8 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
               <span>
                 {work.sampleVideoUrl || work.sampleEmbedUrl
                   ? "サンプル動画を再生できます"
+                  : work.affiliateUrl
+                  ? "サンプルは販売サイトでご覧いただけます"
                   : "動画データはASP連携後に表示されます"}
               </span>
             </div>
