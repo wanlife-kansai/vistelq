@@ -96,6 +96,34 @@ export async function importFanzaWorks(
       update: data,
     });
 
+    // 送客・価格・画像は Offer（ASPごとの販売情報）から読まれるため、ここで登録する。
+    // 有効/無効（enabled）はここでは変えない（新規作成時のみ「無効」で作る）。
+    const asp = await db.asp.upsert({
+      where: { code: 'fanza' },
+      create: { code: 'fanza', name: 'FANZA', enabled: false },
+      update: {},
+    });
+
+    await db.offer.upsert({
+      where: { aspId_externalId: { aspId: asp.id, externalId: work.id } },
+      create: {
+        workId: id,
+        aspId: asp.id,
+        externalId: work.id,
+        price: work.price,
+        affiliateUrl: work.affiliateUrl,
+        imageUrl: work.coverUrl,
+        available: true,
+      },
+      update: {
+        workId: id,
+        price: work.price,
+        affiliateUrl: work.affiliateUrl,
+        imageUrl: work.coverUrl,
+        available: true,
+      },
+    });
+
     await db.workActress.deleteMany({ where: { workId: id } });
     await db.workGenre.deleteMany({ where: { workId: id } });
 

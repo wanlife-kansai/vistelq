@@ -9,7 +9,7 @@
 
 const DEFAULTS = {
   mgs: { enabled: true, hosts: ["www.mgstage.com"] },
-  fanza: { enabled: false, hosts: ["al.dmm.co.jp"] },
+  fanza: { enabled: false, hosts: ["al.fanza.co.jp", "al.dmm.co.jp"] },
 };
 
 function parseHosts(value) {

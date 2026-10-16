@@ -39,13 +39,32 @@ function numberValue(value: unknown, field: string): number {
     throw new Error(`Invalid ${field}`);
   }
 
-  const cleaned = value.trim().replace(/,/g, '');
+  // FANZAは「2680~」のように、最安値に「~」が付く場合がある
+  const cleaned = value.trim().replace(/,/g, '').replace(/[~〜～]$/, '');
 
   if (!/^\d+(?:\.\d+)?(?:円)?$/.test(cleaned)) {
     throw new Error(`Invalid ${field}: ${value}`);
   }
 
   return Number(cleaned.replace('円', ''));
+}
+
+// APIが返すリンクには API用ID（-990〜999）が入るため、
+// FANZA_LINK_AFFILIATE_ID が設定されていれば、リンク用ID（例: navimedia-001）に差し替える。
+function buildAffiliateUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const linkId = process.env.FANZA_LINK_AFFILIATE_ID?.trim();
+  if (!linkId) return raw;
+
+  try {
+    const url = new URL(raw);
+    if (url.searchParams.has('af_id')) {
+      url.searchParams.set('af_id', linkId);
+    }
+    return url.toString();
+  } catch {
+    return raw;
+  }
 }
 
 export function mapFanzaItem(item: FanzaItem): FanzaWorkInput {
@@ -90,17 +109,6 @@ export function mapFanzaItem(item: FanzaItem): FanzaWorkInput {
     throw new Error(`Invalid release date: ${item.date}`);
   }
 
-  if (
-    item.review?.average === undefined ||
-    item.review?.average === null ||
-    item.review?.average === '' ||
-    item.review?.count === undefined ||
-    item.review?.count === null ||
-    item.review?.count === ''
-  ) {
-    throw new Error(`Missing review information: ${id}`);
-  }
-
   return {
     id,
     title,
@@ -118,10 +126,11 @@ export function mapFanzaItem(item: FanzaItem): FanzaWorkInput {
 
       return Math.round(numberValue(rawPrice, 'price'));
     })(),
+    // 新作などレビューがまだ無い作品は 0 として扱う
     rating: numberValue(item.review?.average, 'rating'),
     reviewCount: Math.round(numberValue(item.review?.count, 'reviewCount')),
     releasedAt: date,
-    affiliateUrl: item.affiliateURL || null,
+    affiliateUrl: buildAffiliateUrl(item.affiliateURL),
     coverUrl: item.imageURL?.large || item.imageURL?.list || null,
     actresses,
     genres,
