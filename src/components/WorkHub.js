@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import JsonLd, { breadcrumbList } from "@/components/JsonLd";
 import Pagination from "@/components/Pagination";
 import WorkCardGrid from "@/components/WorkCardGrid";
+import ActressProfileCard from "@/components/ActressProfileCard";
+import { getActressProfile } from "@/lib/actress-profile";
 import { HUB_PAGE_SIZE, hubBase, loadHub, parsePage } from "@/lib/hub";
 import { absoluteUrl } from "@/lib/site-url";
 
@@ -33,6 +35,7 @@ export default async function WorkHub({ kind, params, searchParams }) {
   const items = hub.works.slice((page - 1) * HUB_PAGE_SIZE, page * HUB_PAGE_SIZE);
   const basePath = `${hubBase(kind)}/${encodeURIComponent(hub.slug)}`;
   const t = text[kind];
+  const profile = kind === "actress" ? await getActressProfile(hub.slug) : null;
 
   return (
     <main className="min-h-screen bg-[#09090e] px-5 py-10 text-white">
@@ -52,6 +55,12 @@ export default async function WorkHub({ kind, params, searchParams }) {
           <span className="mx-2">›</span>
           <span className="text-zinc-200">{hub.name}</span>
         </nav>
+
+        {profile && (
+          <div className="mt-6">
+            <ActressProfileCard profile={profile} headingLevel={2} />
+          </div>
+        )}
 
         <h1 className="mb-2 mt-6 text-3xl font-black">{t.title(hub.name)}</h1>
         <p className="mb-8 text-sm text-zinc-400">全{total.toLocaleString()}作品</p>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import MgsWidget from "@/components/MgsWidget";
+import ActressProfileCard from "@/components/ActressProfileCard";
 import {
   actressHref,
   genreHref,
@@ -18,7 +19,11 @@ const tabs = [
   { id: "related", label: "関連作品" },
 ];
 
-export default function WorkDetailClient({ work, relatedWorks = [] }) {
+export default function WorkDetailClient({
+  work,
+  relatedWorks = [],
+  actressProfile = null,
+}) {
   const [activeTab, setActiveTab] = useState("info");
   const [favorite, setFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -454,12 +459,16 @@ export default function WorkDetailClient({ work, relatedWorks = [] }) {
           )}
 
           {activeTab === "actress" && (
-            <div className="rounded-2xl bg-zinc-900 p-8">
-              <h2 className="text-xl font-bold">{actress}</h2>
-              <p className="mt-3 text-sm text-zinc-400">
-                女優プロフィールはデータ連携後に表示します。
-              </p>
-            </div>
+            actressProfile ? (
+              <ActressProfileCard profile={actressProfile} headingLevel={2} />
+            ) : (
+              <div className="rounded-2xl bg-zinc-900 p-8">
+                <h2 className="text-xl font-bold">{actress}</h2>
+                <p className="mt-3 text-sm text-zinc-400">
+                  女優プロフィールは準備中です。
+                </p>
+              </div>
+            )
           )}
 
           {activeTab === "related" && (

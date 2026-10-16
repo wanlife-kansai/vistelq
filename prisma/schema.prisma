@@ -99,9 +99,20 @@ model Work {
 }
 
 model Actress {
-  slug  String        @id
-  name  String
-  works WorkActress[]
+  slug        String        @id
+  name        String
+  ruby        String?
+  imageUrl    String?
+  cup         String?
+  bust        Int?
+  waist       Int?
+  hip         Int?
+  height      Int?
+  birthday    String?
+  bloodType   String?
+  hobby       String?
+  prefectures String?
+  works       WorkActress[]
 }
 
 model Genre {

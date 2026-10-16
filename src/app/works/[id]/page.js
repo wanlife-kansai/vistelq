@@ -4,7 +4,8 @@ import WorkDetailClient from "@/components/WorkDetailClient";
 import JsonLd, { breadcrumbList } from "@/components/JsonLd";
 import { getWorks } from "@/lib/works-db";
 import { absoluteUrl } from "@/lib/site-url";
-import { truncate } from "@/lib/work-relations";
+import { truncate, getActressList } from "@/lib/work-relations";
+import { getActressProfile } from "@/lib/actress-profile";
 
 export async function generateStaticParams() {
   const works = await getWorks();
@@ -99,12 +100,18 @@ async function WorkDetailContent({ params }) {
     })
     .slice(0, 5);
 
+  const firstActress = getActressList(work)[0];
+  const actressProfile = firstActress
+    ? await getActressProfile(firstActress.slug)
+    : null;
+
   return (
     <>
       <JsonLd data={breadcrumb} />
       <WorkDetailClient
         work={work}
         relatedWorks={relatedWorks}
+        actressProfile={actressProfile}
       />
     </>
   );

@@ -22,7 +22,8 @@
     "mgs:apply-media": "tsx --env-file=.env.local scripts/apply-mgs-media.ts",
     "fanza:preview": "tsx --env-file=.env.local scripts/fanza-preview.ts",
     "fanza:import": "tsx --env-file=.env.local scripts/fanza-import.ts",
-    "asp:set": "tsx --env-file=.env.local scripts/set-asp-enabled.ts"
+    "asp:set": "tsx --env-file=.env.local scripts/set-asp-enabled.ts",
+    "fanza:actress": "tsx --env-file=.env.local scripts/fanza-actress-import.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
