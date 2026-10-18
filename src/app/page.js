@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useWorks } from "@/lib/works-context";
+import { useWorks, useWorksTotal } from "@/lib/works-context";
 
 const languages = [
   { code: "ja", label: "🇯🇵 日本語" },
@@ -227,6 +227,7 @@ function VideoSection({ title, items = [], ranking = false, slider = false }) {
 
 export default function Home() {
   const videos = useWorks();
+  const totalWorks = useWorksTotal();
   const demoCategoryIds = buildCategoryIds(videos);
   const [slide, setSlide] = useState(0);
   const [recentIds, setRecentIds] = useState([]);
@@ -329,6 +330,14 @@ export default function Home() {
           </section>
         )}
 
+
+        <p className="text-center text-sm text-zinc-300">
+          🎬 動画全{" "}
+          <span className="text-lg font-bold text-purple-300">
+            {totalWorks.toLocaleString()}
+          </span>{" "}
+          件（VR含む）を掲載中
+        </p>
 
         {/* メインスライダー */}
         <section className="rounded-2xl bg-gradient-to-r from-purple-950 via-purple-800 to-fuchsia-950 p-12">

@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import AgeGate from "@/components/AgeGate";
 import { getSiteUrl, isSeoEnabled } from "@/lib/site-url";
 import { WorksProvider } from "@/lib/works-context";
-import { getWorks } from "@/lib/works-db";
+import { getWorks, getWorkTotal } from "@/lib/works-db";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -30,22 +30,26 @@ export const metadata = {
 };
 
 // クライアントへ渡す作品データを軽量化（説明文を短縮、不要項目を除外）
+// 一覧で使わない項目（サンプル動画URL・購入リンク等）は作品ページ側でDBから取得する
 function slim(work) {
-  const { actresses, ...rest } = work;
+  const { sampleEmbedUrl, affiliateUrl, mgsProductId, ...rest } = work;
   return {
     ...rest,
-    actresses,
     description:
-      typeof work.description === "string" && work.description.length > 160
-        ? work.description.slice(0, 160) + "…"
+      typeof work.description === "string" && work.description.length > 80
+        ? work.description.slice(0, 80) + "…"
         : work.description,
   };
 }
 
 // 作品データをDB(Neon)から取得して、全ページの画面へ配る
 async function WorksLoader({ children }) {
-  const works = await getWorks();
-  return <WorksProvider works={works.map(slim)}>{children}</WorksProvider>;
+  const [works, total] = await Promise.all([getWorks(), getWorkTotal()]);
+  return (
+    <WorksProvider works={works.map(slim)} total={total}>
+      {children}
+    </WorksProvider>
+  );
 }
 
 export default function RootLayout({ children }) {

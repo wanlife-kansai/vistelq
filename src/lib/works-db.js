@@ -159,6 +159,25 @@ async function fetchWorksFromDb() {
   }
 }
 
+// サイト全体の作品数（VR含む・表示上限とは無関係）。失敗時は null。
+export async function getWorkTotal() {
+  "use cache";
+
+  if (!process.env.DATABASE_URL) return null;
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const rows = await prisma.$queryRaw`
+      SELECT COUNT(*)::int AS total FROM "Work" WHERE source <> 'demo'
+    `;
+    cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
+    return Number(rows[0]?.total) || 0;
+  } catch (error) {
+    console.error("作品数の取得に失敗しました:", error?.message ?? error);
+    cacheLife("seconds");
+    return null;
+  }
+}
+
 // 画面から使う入口。
 // DB未設定・接続失敗・登録作品ゼロのときは、従来のサンプル作品に戻す。
 export async function getWorks() {
