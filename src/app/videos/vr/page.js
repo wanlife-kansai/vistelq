@@ -1,5 +1,5 @@
-import VideosPage from "@/components/VideosPage";
+import VideosPageWithImages from "@/components/VideosPageWithImages";
 
 export default function Page() {
-  return <VideosPage mode="vr" />;
+  return <VideosPageWithImages mode="vr" />;
 }

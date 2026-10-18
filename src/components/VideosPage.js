@@ -95,7 +95,7 @@ function HorizontalSlider({ children, title, subtitle }) {
   );
 }
 
-export default function VideosPage({ mode = "normal" }) {
+export default function VideosPage({ mode = "normal", actressImages = {} }) {
   const works = useWorks();
   const isVr = mode === "vr";
   const pageWorks = isVr
@@ -198,6 +198,7 @@ export default function VideosPage({ mode = "normal" }) {
 
     const current = actressMap.get(name) || {
       name,
+      slug: work.actressList?.[0]?.slug || "",
       count: 0,
       views: 0,
     };
@@ -514,8 +515,20 @@ export default function VideosPage({ mode = "normal" }) {
                 }}
                 className="w-[65%] shrink-0 snap-start rounded-xl border border-white/10 bg-zinc-900 p-6 text-left hover:border-purple-400 sm:w-[35%] lg:w-[18%]"
               >
-                <div className="mb-4 flex aspect-square items-center justify-center rounded-xl bg-gradient-to-br from-purple-900 to-zinc-800 text-5xl">
+                <div className="relative mb-4 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-purple-900 to-zinc-800 text-5xl">
                   👤
+                  {actressImages[actress.slug] && (
+                    <img
+                      src={actressImages[actress.slug]}
+                      alt={actress.name}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
                 </div>
                 <p className="text-xs text-yellow-400">
                   {index + 1}位
