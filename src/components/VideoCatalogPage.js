@@ -3,9 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useWorks } from "@/lib/works-context";
 import { allGenres } from "@/data/genres";
-import { matchesWorkSearch } from "@/lib/work-search";
 
 const genreOptions = ["すべて", ...allGenres];
 
@@ -22,7 +20,6 @@ const workCategories = [
 ];
 
 function VideoSearchContent({ mode }) {
-  const works = useWorks();
   const searchParams = useSearchParams();
   const initialGenre = searchParams.get("genre") || "すべて";
 
@@ -58,138 +55,52 @@ function VideoSearchContent({ mode }) {
     setPage(1);
   }, [urlKeyword]);
 
-  const filteredWorks = useMemo(() => {
-    const result = works.filter((work) => {
-      // VR検索ではVR作品だけを対象にする
-      if (["vr", "vr-new", "vr-semi-new"].includes(mode) && work.contentType !== "vr") {
-        return false;
+  // 条件に合う作品を、サーバー(DB)から「そのページ分だけ」取得する
+  const [result, setResult] = useState({ works: [], total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const params = new URLSearchParams({
+        mode,
+        keyword,
+        asp,
+        genre,
+        actress,
+        from: releaseFrom,
+        to: releaseTo,
+        category: mode === "search" || mode === "vr" ? category : "",
+        sort,
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/works?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("search failed");
+        const data = await res.json();
+        setResult({ works: data.works || [], total: data.total || 0 });
+        setFailed(false);
+      } catch (error) {
+        if (error?.name !== "AbortError") setFailed(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-
-      // 共通の検索エンジン：作品名・女優名・メーカー・品番・ジャンル・紹介文を対象に、
-      // 複数キーワードはAND、同義語（NTR／寝取り など）はOR
-      const matchesKeyword = matchesWorkSearch(work, keyword);
-
-      const matchesAsp =
-        asp === "all" || work.asp === asp;
-
-      const matchesGenre =
-        genre === "すべて" ||
-        (work.genres || []).includes(genre);
-
-      const actressName = String(
-        work.actressName || work.actress || ""
-      ).toLowerCase();
-
-      const matchesActress =
-        !actress || actressName.includes(actress.toLowerCase());
-
-      const matchesMaker =
-        !maker ||
-        String(work.maker || "")
-          .toLowerCase()
-          .includes(maker.toLowerCase());
-
-      const releaseDate = work.releaseDate || "";
-
-      const matchesFrom =
-        !releaseFrom ||
-        (releaseDate && releaseDate >= releaseFrom);
-
-      const matchesTo =
-        !releaseTo ||
-        (releaseDate && releaseDate <= releaseTo);
-
-      const categoryRelease = work.releaseDate || "";
-      const addedDate = work.createdAt || "";
-
-      const ageDays = today && categoryRelease
-        ? Math.floor(
-            (
-              new Date(today + "T00:00:00").getTime() -
-              new Date(categoryRelease + "T00:00:00").getTime()
-            ) / 86400000
-          )
-        : null;
-
-      const matchesCategory =
-        category === "popular" ||
-        category === "recent" ||
-        category === "latest" ||
-        (category === "today" && addedDate.startsWith(today)) ||
-        (category === "new" && ageDays !== null && ageDays >= 0 && ageDays <= 30) ||
-        (category === "semi-new" && ageDays !== null && ageDays >= 31 && ageDays <= 90) ||
-        (category === "preorder" && categoryRelease > today) ||
-        (category === "under300" && typeof work.price === "number" && work.price <= 300);
-
-      const matchesPageMode =
-        (mode === "new" || mode === "vr-new")
-          ? ageDays !== null && ageDays >= 0 && ageDays <= 30
-          : (mode === "semi-new" || mode === "vr-semi-new")
-            ? ageDays !== null && ageDays >= 31 && ageDays <= 90
-            : true;
-
-      return (
-        matchesPageMode &&
-        ((mode === "search" || mode === "vr") ? matchesCategory : true) &&
-        matchesKeyword &&
-        matchesAsp &&
-        matchesGenre &&
-        matchesActress &&
-        matchesMaker &&
-        matchesFrom &&
-        matchesTo
-      );
-    });
-
-    const sorters = {
-      popular: (a, b) => (b.views || 0) - (a.views || 0),
-
-      new: (a, b) =>
-        String(b.releaseDate || "").localeCompare(
-          String(a.releaseDate || "")
-        ),
-
-      wishlist: (a, b) =>
-        (b.wishlistCount ?? 0) - (a.wishlistCount ?? 0),
-
-      price: (a, b) =>
-        (a.price ?? Infinity) - (b.price ?? Infinity),
-
-      reviews: (a, b) =>
-        (b.reviewCount ?? 0) - (a.reviewCount ?? 0),
-
-      rating: (a, b) =>
-        (b.rating ?? 0) - (a.rating ?? 0),
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
     };
+  }, [mode, keyword, asp, genre, actress, releaseFrom, releaseTo, category, sort, page, pageSize]);
 
-    result.sort(sorters[sort] || sorters.popular);
-
-    return result;
-  }, [
-    keyword,
-    category,
-    mode,
-    today,
-    asp,
-    genre,
-    actress,
-    maker,
-    releaseFrom,
-    releaseTo,
-    sort,
-  ]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredWorks.length / pageSize)
-  );
-
+  const totalCount = result.total;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = Math.min(page, totalPages);
-
-  const visibleWorks = filteredWorks.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const visibleWorks = result.works;
 
   const resetPage = () => setPage(1);
 
@@ -393,7 +304,7 @@ function VideoSearchContent({ mode }) {
             <div>
               <h2 className="text-2xl font-bold">検索結果</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                {filteredWorks.length}件の作品
+                {loading ? "検索中…" : `${totalCount.toLocaleString()}件の作品`}
               </p>
             </div>
 
@@ -457,7 +368,11 @@ function VideoSearchContent({ mode }) {
             </div>
           ) : (
             <p className="rounded-xl bg-zinc-900 p-8 text-center text-zinc-400">
-              条件に一致する作品がありません。
+              {loading
+                ? "読み込み中…"
+                : failed
+                  ? "作品を取得できませんでした。時間をおいて再度お試しください。"
+                  : "条件に一致する作品がありません。"}
             </p>
           )}
 
