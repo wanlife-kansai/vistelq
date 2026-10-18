@@ -3,7 +3,19 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useT } from "@/lib/i18n";
 import { allGenres } from "@/data/genres";
+
+const catKeys = {
+  popular: "cat_popular",
+  today: "cat_today",
+  recent: "cat_recent",
+  latest: "cat_latest",
+  new: "cat_new",
+  "semi-new": "cat_semi",
+  preorder: "cat_preorder",
+  under300: "cat_under300",
+};
 
 const genreOptions = ["すべて", ...allGenres];
 
@@ -20,15 +32,20 @@ const workCategories = [
 ];
 
 function VideoSearchContent({ mode }) {
+  const { t } = useT();
   const searchParams = useSearchParams();
   const initialGenre = searchParams.get("genre") || "すべて";
 
+  const urlCategory = searchParams.get("category") || "";
+  const validCategories = workCategories.map((item) => item.id);
   const initialCategory =
     (mode === "new" || mode === "vr-new")
       ? "new"
       : (mode === "semi-new" || mode === "vr-semi-new")
         ? "semi-new"
-        : "popular";
+        : validCategories.includes(urlCategory)
+          ? urlCategory
+          : "popular";
 
   const [category, setCategory] = useState(initialCategory);
   const [today, setToday] = useState(null);
@@ -41,11 +58,13 @@ function VideoSearchContent({ mode }) {
   const [keyword, setKeyword] = useState(urlKeyword);
   const [asp, setAsp] = useState("all");
   const [genre, setGenre] = useState(initialGenre);
-  const [actress, setActress] = useState("");
+  const [actress, setActress] = useState(searchParams.get("actress") || "");
   const [maker, setMaker] = useState("");
   const [releaseFrom, setReleaseFrom] = useState("");
   const [releaseTo, setReleaseTo] = useState("");
-  const [sort, setSort] = useState("popular");
+  const [sort, setSort] = useState(
+    ["recent", "latest"].includes(initialCategory) ? "new" : "popular"
+  );
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
 
@@ -161,7 +180,7 @@ function VideoSearchContent({ mode }) {
 
 
         <section className="space-y-5">
-          <h2 className="text-2xl font-bold">カテゴリから探す</h2>
+          <h2 className="text-2xl font-bold">{t("categories")}</h2>
 
           <div className="flex gap-3 overflow-x-auto pb-3">
             {workCategories.map((item) => (
@@ -171,6 +190,7 @@ function VideoSearchContent({ mode }) {
                 onClick={() => {
                   if (mode === "search" || mode === "vr") {
                     setCategory(item.id);
+                    setSort(["recent", "latest"].includes(item.id) ? "new" : "popular");
                     setPage(1);
                   }
                 }}
@@ -180,7 +200,7 @@ function VideoSearchContent({ mode }) {
                     : "border-white/10 bg-zinc-900 text-zinc-300 hover:border-purple-400"
                 }`}
               >
-                {item.label}
+                {t(catKeys[item.id])}
               </button>
             ))}
           </div>
@@ -189,20 +209,20 @@ function VideoSearchContent({ mode }) {
         <section className="space-y-6 rounded-2xl border border-purple-500/30 bg-zinc-900 p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <label className="space-y-2">
-              <span className="text-sm font-bold">キーワード</span>
+              <span className="text-sm font-bold">{t("keyword")}</span>
               <input
                 value={keyword}
                 onChange={(e) => {
                   setKeyword(e.target.value);
                   resetPage();
                 }}
-                placeholder="作品名・女優名・品番など"
+                placeholder={t("keywordPh")}
                 className="w-full rounded-lg bg-zinc-800 px-4 py-3 outline-none"
               />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold">配信サイト</span>
+              <span className="text-sm font-bold">{t("asp")}</span>
               <select
                 value={asp}
                 onChange={(e) => {
@@ -211,7 +231,7 @@ function VideoSearchContent({ mode }) {
                 }}
                 className="w-full rounded-lg bg-zinc-800 px-4 py-3"
               >
-                <option value="all">すべて</option>
+                <option value="all">{t("all")}</option>
                 <option value="FANZA">FANZA</option>
                 <option value="MGS">MGS</option>
                 <option value="ADMAX">ADMAX</option>
@@ -219,7 +239,7 @@ function VideoSearchContent({ mode }) {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold">ジャンル</span>
+              <span className="text-sm font-bold">{t("genre")}</span>
               <select
                 value={genre}
                 onChange={(e) => {
@@ -237,33 +257,33 @@ function VideoSearchContent({ mode }) {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold">女優名</span>
+              <span className="text-sm font-bold">{t("actress")}</span>
               <input
                 value={actress}
                 onChange={(e) => {
                   setActress(e.target.value);
                   resetPage();
                 }}
-                placeholder="女優名を入力"
+                placeholder={t("actressPh")}
                 className="w-full rounded-lg bg-zinc-800 px-4 py-3 outline-none"
               />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold">メーカー名</span>
+              <span className="text-sm font-bold">{t("maker")}</span>
               <input
                 value={maker}
                 onChange={(e) => {
                   setMaker(e.target.value);
                   resetPage();
                 }}
-                placeholder="メーカー名を入力"
+                placeholder={t("makerPh")}
                 className="w-full rounded-lg bg-zinc-800 px-4 py-3 outline-none"
               />
             </label>
 
             <div className="space-y-2">
-              <span className="text-sm font-bold">発売日</span>
+              <span className="text-sm font-bold">{t("releaseDate")}</span>
               <div className="flex items-center gap-3">
                 <input
                   type="date"
@@ -294,7 +314,7 @@ function VideoSearchContent({ mode }) {
               onClick={resetFilters}
               className="rounded-lg border border-purple-500 px-6 py-3 text-sm font-bold hover:bg-purple-950"
             >
-              検索条件をクリア
+              {t("clear")}
             </button>
           </div>
         </section>
@@ -302,9 +322,9 @@ function VideoSearchContent({ mode }) {
         <section className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold">検索結果</h2>
+              <h2 className="text-2xl font-bold">{t("results")}</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                {loading ? "検索中…" : `${totalCount.toLocaleString()}件の作品`}
+                {loading ? t("searching") : t("count", { n: totalCount.toLocaleString() })}
               </p>
             </div>
 
@@ -317,12 +337,12 @@ function VideoSearchContent({ mode }) {
                 }}
                 className="rounded-lg border border-purple-500 bg-zinc-900 px-4 py-3 text-sm"
               >
-                <option value="popular">人気順</option>
-                <option value="new">新着順</option>
-                <option value="wishlist">欲しいものリスト追加数順</option>
-                <option value="price">価格の安い順</option>
-                <option value="reviews">レビュー件数順</option>
-                <option value="rating">評価順</option>
+                <option value="popular">{t("sortPopular")}</option>
+                <option value="new">{t("sortNew")}</option>
+                <option value="wishlist">{t("sortWishlist")}</option>
+                <option value="price">{t("sortPrice")}</option>
+                <option value="reviews">{t("sortReviews")}</option>
+                <option value="rating">{t("sortRating")}</option>
               </select>
 
               <select
@@ -333,9 +353,9 @@ function VideoSearchContent({ mode }) {
                 }}
                 className="rounded-lg border border-purple-500 bg-zinc-900 px-4 py-3 text-sm"
               >
-                <option value="30">30件</option>
-                <option value="60">60件</option>
-                <option value="120">120件</option>
+                <option value="30">{t("perPage", { n: 30 })}</option>
+                <option value="60">{t("perPage", { n: 60 })}</option>
+                <option value="120">{t("perPage", { n: 120 })}</option>
               </select>
             </div>
           </div>
@@ -369,10 +389,10 @@ function VideoSearchContent({ mode }) {
           ) : (
             <p className="rounded-xl bg-zinc-900 p-8 text-center text-zinc-400">
               {loading
-                ? "読み込み中…"
+                ? t("loading")
                 : failed
-                  ? "作品を取得できませんでした。時間をおいて再度お試しください。"
-                  : "条件に一致する作品がありません。"}
+                  ? t("loadFailed")
+                  : t("noResult")}
             </p>
           )}
 
@@ -384,7 +404,7 @@ function VideoSearchContent({ mode }) {
                 onClick={() => setPage(currentPage - 1)}
                 className="rounded-lg bg-zinc-800 px-5 py-3 disabled:opacity-40"
               >
-                前へ
+                {t("prev")}
               </button>
 
               <span className="text-sm">
@@ -397,7 +417,7 @@ function VideoSearchContent({ mode }) {
                 onClick={() => setPage(currentPage + 1)}
                 className="rounded-lg bg-zinc-800 px-5 py-3 disabled:opacity-40"
               >
-                次へ
+                {t("next")}
               </button>
             </div>
           )}

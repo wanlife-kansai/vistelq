@@ -3,6 +3,8 @@
 import { popularGenres, genreGroups, allGenres } from "@/data/genres";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 import { useWorks } from "@/lib/works-context";
 import { matchesWorkSearch } from "@/lib/work-search";
 
@@ -97,7 +99,20 @@ function HorizontalSlider({ children, title, subtitle }) {
 
 export default function VideosPage({ mode = "normal", actressImages = {} }) {
   const works = useWorks();
+  const router = useRouter();
+  const { t } = useT();
   const isVr = mode === "vr";
+  const searchPath = isVr ? "/videos/vr/search" : "/videos/search";
+
+  // 検索・カテゴリは、DB検索ページ（次のページ）へ移動して結果を表示する
+  const goSearch = (params) => {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value) query.set(key, value);
+    }
+    const text = query.toString();
+    router.push(text ? `${searchPath}?${text}` : searchPath);
+  };
   const pageWorks = isVr
     ? works.filter((work) => work.contentType === "vr")
     : works;
@@ -224,23 +239,40 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
   }, [input]);
 
   const selectGenreSuggestion = (name) => {
-    setField("genre");
-    setInput(name);
-    setKeyword(name);
-    setGenre("すべて");
     setShowSuggestions(false);
+    goSearch({ genre: name });
   };
 
   const submitSearch = (event) => {
     event.preventDefault();
-    setKeyword(input);
     setShowSuggestions(false);
+    const text = input.trim();
+    goSearch(field === "actress" ? { actress: text } : { keyword: text });
   };
 
   const selectKeyword = (value) => {
-    setField("all");
-    setInput(value);
-    setKeyword(value);
+    goSearch({ keyword: value });
+  };
+
+  const categoryIds = {
+    "人気順": "popular",
+    "本日の新入荷": "today",
+    "新着順": "recent",
+    "最新作": "latest",
+    "新作": "new",
+    "準新作": "semi-new",
+    "予約商品": "preorder",
+    "300円以下商品": "under300",
+  };
+  const categoryKeys = {
+    "人気順": "cat_popular",
+    "本日の新入荷": "cat_today",
+    "新着順": "cat_recent",
+    "最新作": "cat_latest",
+    "新作": "cat_new",
+    "準新作": "cat_semi",
+    "予約商品": "cat_preorder",
+    "300円以下商品": "cat_under300",
   };
 
   return (
@@ -254,10 +286,10 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
               {isVr ? "VR VIDEO SEARCH" : "VIDEO SEARCH"}
             </p>
             <h1 className="text-3xl font-black md:text-4xl">
-              {isVr ? "VR動画を探す" : "動画作品を探す"}
+              {isVr ? t("vrSearch") : t("videoSearch")}
             </h1>
             <p className="mt-3 text-sm text-zinc-400">
-              作品名・女優名・メーカー名・キーワードから検索
+              {t("searchSub")}
             </p>
           </div>
 
@@ -285,13 +317,13 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="作品名・女優名・メーカー名・ジャンル・キーワードで検索"
+              placeholder={t("searchPlaceholder")}
               className="min-w-0 flex-1 px-4 py-4 text-sm text-zinc-900 outline-none"
             />
 
             <button
               type="submit"
-              aria-label="検索"
+              aria-label={t("search")}
               className="bg-gradient-to-r from-purple-600 to-pink-500 px-6 text-2xl text-white hover:from-purple-500 hover:to-pink-400"
             >
               🔍
@@ -301,7 +333,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
           {showSuggestions && genreSuggestions.length > 0 && (
             <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-purple-500/40 bg-zinc-900 shadow-2xl">
               <div className="border-b border-white/10 px-4 py-3 text-xs font-bold text-purple-300">
-                ジャンル候補
+                {t("genreCandidates")}
               </div>
 
               {genreSuggestions.map((name) => (
@@ -320,7 +352,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="mr-2 text-sm font-bold text-pink-400">
-              人気の検索ワード
+              {t("popularWords")}
             </span>
 
             {popularKeywords.map((word) => (
@@ -338,7 +370,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
 
         <section className="space-y-5">
           <h2 className="text-2xl font-bold">
-            カテゴリから探す
+            {t("categories")}
           </h2>
 
           <div className="flex flex-wrap gap-3">
@@ -346,15 +378,10 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
               <button
                 key={item}
                 type="button"
-                onClick={() => setGenre(item)}
-                aria-pressed={genre === item}
-                className={`rounded-full border px-5 py-3 text-sm transition ${
-                  genre === item
-                    ? "border-purple-400 bg-purple-700 text-white"
-                    : "border-white/10 bg-zinc-900 text-zinc-300 hover:border-purple-400"
-                }`}
+                onClick={() => goSearch({ category: categoryIds[item] })}
+                className="rounded-full border border-white/10 bg-zinc-900 px-5 py-3 text-sm text-zinc-300 transition hover:border-purple-400"
               >
-                {item}
+                {t(categoryKeys[item])}
               </button>
             ))}
           </div>
@@ -506,13 +533,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
               <button
                 key={actress.name}
                 type="button"
-                onClick={() => {
-                  setField("actress");
-                  setInput(actress.name);
-                  setKeyword(actress.name);
-                  setGenre("すべて");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
+                onClick={() => goSearch({ actress: actress.name })}
                 className="w-[65%] shrink-0 snap-start rounded-xl border border-white/10 bg-zinc-900 p-6 text-left hover:border-purple-400 sm:w-[35%] lg:w-[18%]"
               >
                 <div className="relative mb-4 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-purple-900 to-zinc-800 text-5xl">
@@ -547,23 +568,23 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
             <div>
               <div className="flex flex-wrap items-center gap-4">
                 <h2 className="text-2xl font-bold">
-                  作品一覧
+                  {t("worksList")}
                 </h2>
                 <Link
                   href={isVr ? "/videos/vr/search" : "/videos/search"}
                   className="rounded-full border border-purple-500 px-5 py-2 text-sm font-bold text-purple-200 transition hover:bg-purple-900"
                 >
-                  すべて見る →
+                  {t("seeAll")}
                 </Link>
                 <Link
                   href={isVr ? "/videos/vr/search" : "/videos/search"}
                   className="rounded-lg border border-purple-500 bg-purple-900/40 px-5 py-2 text-sm font-bold text-purple-100 hover:bg-purple-800"
                 >
-                  🔍 詳細検索を開く →
+                  {t("detailSearch")}
                 </Link>
               </div>
               <p className="mt-2 text-sm text-zinc-400">
-                {filteredWorks.length}件の作品
+                {t("count", { n: filteredWorks.length })}
               </p>
             </div>
 
@@ -572,8 +593,8 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
               onChange={(event) => setSort(event.target.value)}
               className="rounded-lg border border-purple-500 bg-zinc-900 px-5 py-3 text-sm"
             >
-              <option value="popular">人気順</option>
-              <option value="new">新着順</option>
+              <option value="popular">{t("sortPopular")}</option>
+              <option value="new">{t("sortNew")}</option>
             </select>
           </div>
 
@@ -616,7 +637,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
           ) : (
             <div className="rounded-xl border border-white/10 bg-zinc-900 p-10 text-center">
               <p className="text-zinc-300">
-                該当する作品がありません。
+                {t("noMatch")}
               </p>
               <p className="mt-3 text-sm text-zinc-500">
                 現在はサンプルデータで検索機能を確認しています。
@@ -631,7 +652,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
                 }}
                 className="mt-6 rounded-lg bg-purple-600 px-6 py-3 text-sm font-bold"
               >
-                検索条件をクリア
+                {t("clear")}
               </button>
             </div>
           )}

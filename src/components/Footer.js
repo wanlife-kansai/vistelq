@@ -1,14 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { useT } from "@/lib/i18n";
 
 const links = [
-  ["動画を探す", "/videos"],
-  ["ランキング", "/rankings"],
-  ["女優", "/actresses"],
-  ["プライバシーポリシー", "/privacy"],
-  ["運営者情報", "/about"],
+  ["footerFind", "/videos"],
+  ["footerRanking", "/rankings"],
+  ["footerActress", "/actresses"],
+  ["footerPrivacy", "/privacy"],
+  ["footerAbout", "/about"],
 ];
 
 export default function Footer() {
+  const { t } = useT();
   return (
     <footer className="mt-auto border-t border-white/10 bg-[#101018] px-5 py-10 text-sm text-zinc-400">
       <div className="mx-auto max-w-7xl space-y-5">
@@ -25,9 +29,9 @@ export default function Footer() {
         </p>
 
         <nav aria-label="フッターナビゲーション" className="flex flex-wrap gap-x-6 gap-y-2">
-          {links.map(([label, href]) => (
+          {links.map(([key, href]) => (
             <Link key={href} href={href} className="hover:text-purple-300">
-              {label}
+              {t(key)}
             </Link>
           ))}
         </nav>

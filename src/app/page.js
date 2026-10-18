@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useWorks, useWorksTotal } from "@/lib/works-context";
+import { useLang } from "@/lib/i18n";
 
 const languages = [
   { code: "ja", label: "🇯🇵 日本語" },
@@ -232,15 +233,8 @@ export default function Home() {
   const [slide, setSlide] = useState(0);
   const [recentIds, setRecentIds] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [language, setLanguage] = useState("ja");
-  const t = translations[language];
-
-  useEffect(() => {
-    const saved = localStorage.getItem("vistelq-language");
-    if (saved && translations[saved]) {
-      setLanguage(saved);
-    }
-  }, []);
+  const language = useLang();
+  const t = translations[language] || translations.ja;
 
 
 

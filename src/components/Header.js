@@ -1,26 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-const languages = [
-  { code: "ja", label: "🇯🇵 日本語" },
-  { code: "en", label: "🇺🇸 English" },
-  { code: "zh", label: "🇨🇳 简体中文" },
-  { code: "zh-TW", label: "��🇼 繁體中文" },
-  { code: "ko", label: "🇰🇷 한국어" },
-];
+import { LANGUAGES, saveLanguage, useT } from "@/lib/i18n";
 
 export default function Header() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [language, setLanguage] = useState("ja");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("vistelq-language");
-    if (saved) setLanguage(saved);
-  }, []);
+  const { t, lang } = useT();
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -50,7 +38,7 @@ export default function Header() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="作品名・ASP名で検索"
+            placeholder={t("headerPlaceholder")}
             className="min-w-0 flex-1 rounded-lg bg-zinc-800 px-5 py-3 text-white outline-none"
           />
 
@@ -58,7 +46,7 @@ export default function Header() {
             type="submit"
             className="rounded-lg bg-purple-600 px-6 py-3 text-white hover:bg-purple-500"
           >
-            検索
+            {t("search")}
           </button>
         </form>
 
@@ -66,17 +54,12 @@ export default function Header() {
           <span aria-hidden="true">🌐</span>
 
           <select
-            aria-label="表示言語を選択"
-            value={language}
-            onChange={(event) => {
-              const next = event.target.value;
-              setLanguage(next);
-              localStorage.setItem("vistelq-language", next);
-              window.dispatchEvent(new Event("vistelq-language-change"));
-            }}
+            aria-label={t("langLabel")}
+            value={lang}
+            onChange={(event) => saveLanguage(event.target.value)}
             className="max-w-36 cursor-pointer bg-transparent text-sm text-white outline-none"
           >
-            {languages.map((item) => (
+            {LANGUAGES.map((item) => (
               <option
                 key={item.code}
                 value={item.code}
@@ -92,14 +75,14 @@ export default function Header() {
           href="/favorites"
           className="rounded-lg border border-purple-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-purple-950"
         >
-          ♡ お気に入り
+          {t("favorites")}
         </Link>
 
         <button
           type="button"
           className="rounded-lg border border-purple-500 px-5 py-3 text-white hover:bg-purple-950"
         >
-          ログイン
+          {t("login")}
         </button>
       </div>
     </header>
