@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchWorks } from "@/lib/works-search";
+import { getWorksByIds, searchWorks } from "@/lib/works-search";
 
 // 作品の検索API：条件に合う作品を、そのページ分だけ返す
 export async function GET(request) {
@@ -9,6 +9,13 @@ export async function GET(request) {
 
   const p = request.nextUrl.searchParams;
   try {
+    // ?ids=a,b,c … お気に入り・最近見た作品を、IDから取得する
+    if (p.get("ids")) {
+      const ids = p.get("ids").split(",").map((id) => id.trim()).filter(Boolean);
+      const works = await getWorksByIds(ids);
+      return NextResponse.json({ works, total: works.length });
+    }
+
     const result = await searchWorks({
       mode: p.get("mode"),
       keyword: p.get("keyword"),

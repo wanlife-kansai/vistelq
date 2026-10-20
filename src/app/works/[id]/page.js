@@ -2,13 +2,13 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import WorkDetailClient from "@/components/WorkDetailClient";
 import JsonLd, { breadcrumbList } from "@/components/JsonLd";
-import { getWorks } from "@/lib/works-db";
+import { getFeaturedWorks, getWorkById, getRelatedWorks } from "@/lib/works-db";
 import { absoluteUrl } from "@/lib/site-url";
 import { truncate, getActressList } from "@/lib/work-relations";
 import { getActressProfile } from "@/lib/actress-profile";
 
 export async function generateStaticParams() {
-  const works = await getWorks();
+  const works = await getFeaturedWorks();
 
   // 先頭の作品だけ事前生成し、残りはアクセス時に生成する
   return works.slice(0, 50).map((work) => ({
@@ -18,8 +18,7 @@ export async function generateStaticParams() {
 
 async function findWork(params) {
   const { id } = await params;
-  const works = await getWorks();
-  return works.find((item) => String(item.id) === String(id)) ?? null;
+  return getWorkById(id);
 }
 
 // 検索結果に出る <title> / 説明文 / 正規URL / SNS共有用の情報
@@ -74,8 +73,7 @@ export default function WorkDetailPage({ params }) {
 async function WorkDetailContent({ params }) {
   const { id } = await params;
 
-  const works = await getWorks();
-  const work = works.find((item) => String(item.id) === String(id));
+  const work = await getWorkById(id);
 
   if (!work) {
     notFound();
@@ -87,18 +85,7 @@ async function WorkDetailContent({ params }) {
     { name: truncate(work.title, 60), url: absoluteUrl(`/works/${encodeURIComponent(work.id)}`) },
   ]);
 
-  const relatedWorks = works
-    .filter((item) => item.id !== work.id)
-    .sort((a, b) => {
-      const sameActressA =
-        a.actressName === work.actressName ? 1 : 0;
-
-      const sameActressB =
-        b.actressName === work.actressName ? 1 : 0;
-
-      return sameActressB - sameActressA;
-    })
-    .slice(0, 5);
+  const relatedWorks = await getRelatedWorks(work);
 
   const firstActress = getActressList(work)[0];
   const actressProfile = firstActress

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useWorks } from "@/lib/works-context";
 import { actressHref, getActressList } from "@/lib/work-relations";
 
+const PAGE_SIZE = 60;
+
 const groups = [
   { label: "あ行", chars: "あいうえおアイウエオ" },
   { label: "か行", chars: "かきくけこカキクケコがぎぐげごガギグゲゴ" },
@@ -18,15 +20,21 @@ const groups = [
   { label: "わ行", chars: "わをんワヲン" },
 ];
 
-export default function ActressesClient({ images = {} }) {
+export default function ActressesClient({ directory = [] }) {
   const works = useWorks();
+  const [limit, setLimit] = useState(PAGE_SIZE);
   const [group, setGroup] = useState("すべて");
   const [sort, setSort] = useState("popular");
 
   const actresses = useMemo(() => {
     const map = new Map();
 
-    for (const work of works) {
+    // DBで集計した一覧があればそれを使う（なければ、読み込み済みの作品から集計）
+    for (const item of directory) {
+      map.set(item.slug, { ...item });
+    }
+
+    for (const work of directory.length > 0 ? [] : works) {
       for (const person of getActressList(work)) {
         // 「出演者未登録」は女優として一覧に出さない
         if (person.name === "出演者未登録" || person.slug === "unknown") continue;
@@ -61,7 +69,9 @@ export default function ActressesClient({ images = {} }) {
     }
 
     return result;
-  }, [works, group, sort]);
+  }, [works, directory, group, sort]);
+
+  const shown = actresses.slice(0, limit);
 
   return (
     <main className="min-h-screen bg-[#09090e] px-5 py-10 text-white">
@@ -76,7 +86,10 @@ export default function ActressesClient({ images = {} }) {
           {["すべて", ...groups.map((item) => item.label)].map((name) => (
             <button
               key={name}
-              onClick={() => setGroup(name)}
+              onClick={() => {
+                setGroup(name);
+                setLimit(PAGE_SIZE);
+              }}
               className={`rounded-full px-4 py-2 text-sm ${
                 group === name
                   ? "bg-purple-600"
@@ -90,7 +103,10 @@ export default function ActressesClient({ images = {} }) {
 
         <select
           value={sort}
-          onChange={(event) => setSort(event.target.value)}
+          onChange={(event) => {
+            setSort(event.target.value);
+            setLimit(PAGE_SIZE);
+          }}
           className="rounded-lg bg-zinc-800 px-5 py-3"
         >
           <option value="popular">人気順</option>
@@ -103,7 +119,7 @@ export default function ActressesClient({ images = {} }) {
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-5">
-            {actresses.map((actress) => (
+            {shown.map((actress) => (
               <Link
                 key={actress.slug}
                 href={
@@ -115,9 +131,9 @@ export default function ActressesClient({ images = {} }) {
               >
                 <div className="relative mb-4 flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-purple-950 text-5xl">
                   <span aria-hidden="true">👤</span>
-                  {images[actress.slug] && (
+                  {actress.imageUrl && (
                     <img
-                      src={images[actress.slug]}
+                      src={actress.imageUrl}
                       alt={actress.name}
                       loading="lazy"
                       className="absolute inset-0 h-full w-full object-cover"
@@ -134,6 +150,18 @@ export default function ActressesClient({ images = {} }) {
                 </p>
               </Link>
             ))}
+          </div>
+        )}
+
+        {actresses.length > shown.length && (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setLimit((current) => current + PAGE_SIZE)}
+              className="rounded-lg border border-purple-500 px-8 py-3 text-sm font-bold hover:bg-purple-950"
+            >
+              もっと見る（{shown.length} / {actresses.length}人）
+            </button>
           </div>
         )}
       </div>

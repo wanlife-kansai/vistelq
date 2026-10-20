@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useWorks } from "@/lib/works-context";
+import { useWorksByIds } from "@/lib/use-works-by-ids";
 
 const STORAGE_KEY = "vistelq-favorites";
 
@@ -16,7 +16,6 @@ function readFavorites() {
 }
 
 export default function FavoritesPage() {
-  const works = useWorks();
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -39,9 +38,7 @@ export default function FavoritesPage() {
     };
   }, []);
 
-  const favoriteWorks = favoriteIds
-    .map((id) => works.find((work) => String(work.id) === id))
-    .filter(Boolean);
+  const favoriteWorks = useWorksByIds(favoriteIds);
 
   const removeFavorite = (id) => {
     const next = favoriteIds.filter(

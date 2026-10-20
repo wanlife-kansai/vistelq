@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import AgeGate from "@/components/AgeGate";
 import { getSiteUrl, isSeoEnabled } from "@/lib/site-url";
 import { WorksProvider } from "@/lib/works-context";
-import { getWorks, getWorkTotal } from "@/lib/works-db";
+import { getFeaturedWorks, getWorkTotal } from "@/lib/works-db";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -42,9 +42,9 @@ function slim(work) {
   };
 }
 
-// 作品データをDB(Neon)から取得して、全ページの画面へ配る
+// 注目作品（人気・新着・VRの上位）だけをDB(Neon)から取得して、全ページの画面へ配る
 async function WorksLoader({ children }) {
-  const [works, total] = await Promise.all([getWorks(), getWorkTotal()]);
+  const [works, total] = await Promise.all([getFeaturedWorks(), getWorkTotal()]);
   return (
     <WorksProvider works={works.map(slim)} total={total}>
       {children}

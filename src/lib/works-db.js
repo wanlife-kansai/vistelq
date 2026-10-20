@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
+import { Prisma } from "@/generated/prisma/client";
 import { works as sampleWorks } from "@/data/works";
 import { buildOutUrl, isAllowedAffiliateUrl } from "@/lib/affiliate";
 import { isAspEnabled } from "@/lib/asp-config";
@@ -8,7 +9,9 @@ import { isAspEnabled } from "@/lib/asp-config";
 // VISTELQの画面がそのまま使える形に変換して返す。
 // 画面側のコードは従来の works 配列と同じ形で受け取れる。
 
-const MAX_WORKS = 500;
+const FEATURED_POPULAR = 60;
+const FEATURED_NEWEST = 60;
+const FEATURED_VR = 40;
 export const PLACEHOLDER_THUMBNAIL = "/thumbnails/no-image.svg";
 
 const jstDate = new Intl.DateTimeFormat("sv-SE", {
@@ -96,66 +99,117 @@ export function mapWorkRow(row) {
   };
 }
 
-// DBから取得。成功したら10分ごとに更新、失敗したときはすぐ再試行できるよう
-// ごく短い時間しかキャッシュしない（失敗でビルドや表示を止めない）。
-async function fetchWorksFromDb() {
+// 作品1件ぶんの取得内容（一覧・詳細・関連作品で共通）
+const WORK_COLUMNS = Prisma.sql`
+  w.id, w.title, w.summary, w."actressName", w."actressSlug",
+  w."genreName", w."genreSlug", w.price, w."reviewCount", w."releasedAt",
+  w."coverUrl", w."sampleMovieUrl", w.source,
+  COALESCE((
+    SELECT json_agg(json_build_object('slug', a.slug, 'name', a.name) ORDER BY a.name)
+    FROM "WorkActress" wa
+    JOIN "Actress" a ON a.slug = wa."actressSlug"
+    WHERE wa."workId" = w.id
+  ), '[]'::json) AS actresses,
+  COALESCE((
+    SELECT json_agg(json_build_object('slug', g.slug, 'name', g.name) ORDER BY g.name)
+    FROM "WorkGenre" wg
+    JOIN "Genre" g ON g.slug = wg."genreSlug"
+    WHERE wg."workId" = w.id
+  ), '[]'::json) AS genres,
+  COALESCE((
+    SELECT json_agg(
+      json_build_object(
+        'asp', s.code,
+        'aspName', s.name,
+        'affiliateUrl', o."affiliateUrl",
+        'imageUrl', o."imageUrl",
+        'price', o.price
+      ) ORDER BY s.code
+    )
+    FROM "Offer" o
+    JOIN "Asp" s ON s.id = o."aspId"
+    WHERE o."workId" = w.id AND o.available = true AND s.enabled = true
+  ), '[]'::json) AS offers
+`;
+
+export { WORK_COLUMNS };
+
+// 画面の最初の表示に使う「注目の作品」だけを取得する
+// （人気順・新着順・VR人気順の上位。全作品はブラウザへ送らない）
+async function fetchFeaturedFromDb() {
   "use cache";
 
   try {
     const { prisma } = await import("@/lib/prisma");
     const rows = await prisma.$queryRaw`
-    SELECT
-      w.id,
-      w.title,
-      w.summary,
-      w."actressName",
-      w."actressSlug",
-      w."genreName",
-      w."genreSlug",
-      w.price,
-      w."reviewCount",
-      w."releasedAt",
-      w."coverUrl",
-      w."sampleMovieUrl",
-      w.source,
-      COALESCE((
-        SELECT json_agg(json_build_object('slug', a.slug, 'name', a.name) ORDER BY a.name)
-        FROM "WorkActress" wa
-        JOIN "Actress" a ON a.slug = wa."actressSlug"
-        WHERE wa."workId" = w.id
-      ), '[]'::json) AS actresses,
-      COALESCE((
-        SELECT json_agg(json_build_object('slug', g.slug, 'name', g.name) ORDER BY g.name)
-        FROM "WorkGenre" wg
-        JOIN "Genre" g ON g.slug = wg."genreSlug"
-        WHERE wg."workId" = w.id
-      ), '[]'::json) AS genres,
-      COALESCE((
-        SELECT json_agg(
-          json_build_object(
-            'asp', s.code,
-            'aspName', s.name,
-            'affiliateUrl', o."affiliateUrl",
-            'imageUrl', o."imageUrl",
-            'price', o.price
-          ) ORDER BY s.code
-        )
-        FROM "Offer" o
-        JOIN "Asp" s ON s.id = o."aspId"
-        WHERE o."workId" = w.id AND o.available = true AND s.enabled = true
-      ), '[]'::json) AS offers
-    FROM "Work" w
-    WHERE w.source <> 'demo'
-    ORDER BY w."releasedAt" DESC, w.id ASC
-    LIMIT ${MAX_WORKS}
-  `;
+      SELECT ${WORK_COLUMNS}
+      FROM "Work" w
+      WHERE w.id IN (
+        SELECT id FROM (
+          SELECT id FROM "Work" WHERE source <> 'demo'
+          ORDER BY "reviewCount" DESC, "releasedAt" DESC LIMIT ${FEATURED_POPULAR}
+        ) p
+        UNION
+        SELECT id FROM (
+          SELECT id FROM "Work" WHERE source <> 'demo'
+          ORDER BY "releasedAt" DESC, id ASC LIMIT ${FEATURED_NEWEST}
+        ) n
+        UNION
+        SELECT id FROM (
+          SELECT id FROM "Work" w2 WHERE source <> 'demo' AND (
+            w2."genreName" ~* 'VR' OR EXISTS (
+              SELECT 1 FROM "WorkGenre" wg JOIN "Genre" g ON g.slug = wg."genreSlug"
+              WHERE wg."workId" = w2.id AND g.name ~* 'VR'))
+          ORDER BY "reviewCount" DESC, "releasedAt" DESC LIMIT ${FEATURED_VR}
+        ) v
+      )
+      ORDER BY w."reviewCount" DESC, w."releasedAt" DESC, w.id ASC
+    `;
 
     cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
     return rows.map(mapWorkRow);
   } catch (error) {
-    console.error("作品データの取得に失敗しました:", error?.message ?? error);
+    console.error("注目作品の取得に失敗しました:", error?.message ?? error);
     cacheLife("seconds");
     return null;
+  }
+}
+
+async function fetchWorkByIdFromDb(id) {
+  "use cache";
+
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const rows = await prisma.$queryRaw`
+      SELECT ${WORK_COLUMNS} FROM "Work" w
+      WHERE w.id = ${id} AND w.source <> 'demo' LIMIT 1
+    `;
+    cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
+    return rows[0] ? mapWorkRow(rows[0]) : null;
+  } catch (error) {
+    console.error("作品の取得に失敗しました:", error?.message ?? error);
+    cacheLife("seconds");
+    return undefined; // 取得失敗（作品なしとは区別する）
+  }
+}
+
+async function fetchRelatedFromDb(id, actressSlug) {
+  "use cache";
+
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const rows = await prisma.$queryRaw`
+      SELECT ${WORK_COLUMNS} FROM "Work" w
+      WHERE w.id <> ${id} AND w.source <> 'demo'
+      ORDER BY (w."actressSlug" = ${actressSlug}) DESC, w."reviewCount" DESC, w.id ASC
+      LIMIT 5
+    `;
+    cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
+    return rows.map(mapWorkRow);
+  } catch (error) {
+    console.error("関連作品の取得に失敗しました:", error?.message ?? error);
+    cacheLife("seconds");
+    return [];
   }
 }
 
@@ -180,14 +234,43 @@ export async function getWorkTotal() {
 
 // 画面から使う入口。
 // DB未設定・接続失敗・登録作品ゼロのときは、従来のサンプル作品に戻す。
-export async function getWorks() {
+
+// 最初の表示用（トップ・棚・ランキング）。全作品ではなく上位だけ。
+export async function getFeaturedWorks() {
   if (!process.env.DATABASE_URL) return sampleWorks;
 
-  const works = await fetchWorksFromDb();
+  const works = await fetchFeaturedFromDb();
   return works && works.length > 0 ? works : sampleWorks;
 }
 
+// 作品ページ用：その1件だけをDBから取得する
 export async function getWorkById(id) {
-  const works = await getWorks();
-  return works.find((work) => String(work.id) === String(id)) ?? null;
+  if (!process.env.DATABASE_URL) {
+    return sampleWorks.find((work) => String(work.id) === String(id)) ?? null;
+  }
+
+  const work = await fetchWorkByIdFromDb(String(id));
+  if (work === undefined) {
+    return sampleWorks.find((item) => String(item.id) === String(id)) ?? null;
+  }
+  if (work) return work;
+  return sampleWorks.find((item) => String(item.id) === String(id)) ?? null;
+}
+
+// 作品ページの「関連作品」（同じ女優を優先し、人気順で5件）
+export async function getRelatedWorks(work) {
+  if (!process.env.DATABASE_URL) {
+    return sampleWorks.filter((item) => item.id !== work.id).slice(0, 5);
+  }
+
+  const slug = work.actressList?.[0]?.slug || "";
+  const related = await fetchRelatedFromDb(String(work.id), slug);
+  return related.length > 0
+    ? related
+    : sampleWorks.filter((item) => item.id !== work.id).slice(0, 5);
+}
+
+// 互換用：従来の getWorks は、注目作品を返す
+export async function getWorks() {
+  return getFeaturedWorks();
 }

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import ActressesClient from "@/components/ActressesClient";
-import { getActressImages } from "@/lib/actress-profile";
+import { getActressDirectory } from "@/lib/actress-profile";
 
 export const metadata = {
   title: "AV女優一覧",
@@ -9,8 +9,8 @@ export const metadata = {
 };
 
 async function ActressesContent() {
-  const images = await getActressImages();
-  return <ActressesClient images={images} />;
+  const directory = await getActressDirectory();
+  return <ActressesClient directory={directory} />;
 }
 
 export default function ActressesPage() {

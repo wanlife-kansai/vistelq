@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useWorks, useWorksTotal } from "@/lib/works-context";
 import { useLang } from "@/lib/i18n";
+import { useWorksByIds } from "@/lib/use-works-by-ids";
 
 const languages = [
   { code: "ja", label: "🇯🇵 日本語" },
@@ -258,9 +259,7 @@ export default function Home() {
     };
   }, []);
 
-  const recentVideos = recentIds
-    .map((id) => videos.find((video) => String(video.id) === id))
-    .filter(Boolean);
+  const recentVideos = useWorksByIds(recentIds);
 
   const categoryVideos = selectedCategory
     ? videos.filter((video) =>

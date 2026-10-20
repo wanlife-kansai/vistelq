@@ -1,6 +1,6 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
-import { mapWorkRow } from "@/lib/works-db";
+import { mapWorkRow, WORK_COLUMNS } from "@/lib/works-db";
 
 // DBで検索・絞り込み・並べ替え・ページ分けを行う（全作品をブラウザへ送らない）。
 
@@ -40,6 +40,33 @@ function wordCondition(word) {
     )`;
   });
   return Prisma.sql`(${Prisma.join(parts, " OR ")})`;
+}
+
+// 一覧に必要な項目だけにする（サンプル動画URL・購入リンクなどは作品ページで取得）
+function slimWork(row) {
+  const { sampleEmbedUrl, affiliateUrl, mgsProductId, ...rest } = mapWorkRow(row);
+  return {
+    ...rest,
+    description:
+      typeof rest.description === "string" && rest.description.length > 80
+        ? rest.description.slice(0, 80) + "…"
+        : rest.description,
+  };
+}
+
+// 作品IDの一覧から作品を取得（お気に入り・最近見た作品用）。IDの順番を保つ
+export async function getWorksByIds(ids) {
+  const list = [...new Set((Array.isArray(ids) ? ids : []).map(String))]
+    .filter((id) => id && id.length <= 150)
+    .slice(0, 50);
+  if (list.length === 0) return [];
+
+  const { prisma } = await import("@/lib/prisma");
+  const rows = await prisma.$queryRaw`
+    SELECT ${WORK_COLUMNS} FROM "Work" w
+    WHERE w.id = ANY(${list}::text[]) AND w.source <> 'demo'`;
+  const byId = new Map(rows.map((row) => [String(row.id), slimWork(row)]));
+  return list.map((id) => byId.get(id)).filter(Boolean);
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -123,43 +150,14 @@ export async function searchWorks(input = {}) {
   const [countRows, rows] = await Promise.all([
     prisma.$queryRaw`SELECT COUNT(*)::int AS total FROM "Work" w WHERE ${where}`,
     prisma.$queryRaw`
-      SELECT
-        w.id, w.title, w.summary, w."actressName", w."actressSlug",
-        w."genreName", w."genreSlug", w.price, w."reviewCount", w."releasedAt",
-        w."coverUrl", w.source,
-        COALESCE((
-          SELECT json_agg(json_build_object('slug', a.slug, 'name', a.name) ORDER BY a.name)
-          FROM "WorkActress" wa JOIN "Actress" a ON a.slug = wa."actressSlug"
-          WHERE wa."workId" = w.id
-        ), '[]'::json) AS actresses,
-        COALESCE((
-          SELECT json_agg(json_build_object('slug', g.slug, 'name', g.name) ORDER BY g.name)
-          FROM "WorkGenre" wg JOIN "Genre" g ON g.slug = wg."genreSlug"
-          WHERE wg."workId" = w.id
-        ), '[]'::json) AS genres,
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'asp', s.code, 'aspName', s.name, 'affiliateUrl', o."affiliateUrl",
-            'imageUrl', o."imageUrl", 'price', o.price) ORDER BY s.code)
-          FROM "Offer" o JOIN "Asp" s ON s.id = o."aspId"
-          WHERE o."workId" = w.id AND o.available = true AND s.enabled = true
-        ), '[]'::json) AS offers
+      SELECT ${WORK_COLUMNS}
       FROM "Work" w
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${pageSize} OFFSET ${offset}`,
   ]);
 
-  const works = rows.map((row) => {
-    const { sampleEmbedUrl, affiliateUrl, mgsProductId, ...rest } = mapWorkRow(row);
-    return {
-      ...rest,
-      description:
-        typeof rest.description === "string" && rest.description.length > 80
-          ? rest.description.slice(0, 80) + "…"
-          : rest.description,
-    };
-  });
+  const works = rows.map(slimWork);
 
   return { total: Number(countRows[0]?.total) || 0, page, pageSize, works };
 }

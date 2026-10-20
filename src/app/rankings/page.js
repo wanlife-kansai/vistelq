@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useWorks } from "@/lib/works-context";
 
 const rankingTabs = [
   { id: "daily", label: "本日の人気" },
@@ -14,17 +13,32 @@ const rankingTabs = [
 ];
 
 export default function RankingsPage() {
-  const works = useWorks();
   const [activeTab, setActiveTab] = useState("daily");
+  const [fetched, setFetched] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 人気上位50作品を、タブに応じてサーバー(DB)から取得する
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ sort: "popular", pageSize: "50" });
+    if (["FANZA", "MGS", "ADMAX"].includes(activeTab)) params.set("asp", activeTab);
+
+    setLoading(true);
+    fetch(`/api/works?${params.toString()}`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : { works: [] }))
+      .then((data) => setFetched(data.works || []))
+      .catch((error) => {
+        if (error?.name !== "AbortError") setFetched([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [activeTab]);
 
   const rankedWorks = useMemo(() => {
-    const result = [...works];
-
-    if (["FANZA", "MGS", "ADMAX"].includes(activeTab)) {
-      return result
-        .filter((work) => work.asp === activeTab)
-        .sort((a, b) => b.views - a.views);
-    }
+    const result = [...fetched];
 
     if (activeTab === "weekly") {
       return result.sort(
@@ -43,7 +57,7 @@ export default function RankingsPage() {
     }
 
     return result.sort((a, b) => b.views - a.views);
-  }, [activeTab]);
+  }, [activeTab, fetched]);
 
   return (
     <main className="min-h-screen bg-[#09090e] px-5 py-10 text-white">
@@ -147,7 +161,7 @@ export default function RankingsPage() {
 
           {rankedWorks.length === 0 && (
             <div className="rounded-xl bg-zinc-900 p-10 text-center text-zinc-400">
-              該当する作品がありません。
+              {loading ? "読み込み中…" : "該当する作品がありません。"}
             </div>
           )}
         </section>

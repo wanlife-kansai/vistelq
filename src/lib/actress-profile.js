@@ -52,3 +52,38 @@ export async function getActressImages() {
     return {};
   }
 }
+
+// 女優一覧ページ用：出演作品数・閲覧数・画像つきの一覧をDBで集計して返す
+export async function getActressDirectory() {
+  "use cache";
+
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const rows = await prisma.$queryRaw`
+      SELECT a.slug, a.name, a."imageUrl",
+             COUNT(*)::int AS count,
+             COALESCE(SUM(w."reviewCount"), 0)::int AS views
+      FROM "WorkActress" wa
+      JOIN "Actress" a ON a.slug = wa."actressSlug"
+      JOIN "Work" w ON w.id = wa."workId"
+      WHERE w.source <> 'demo' AND a.name <> '出演者未登録' AND a.slug <> 'unknown'
+      GROUP BY a.slug, a.name, a."imageUrl"
+      ORDER BY views DESC, count DESC, a.name ASC
+      LIMIT 3000
+    `;
+
+    cacheLife({ stale: 300, revalidate: 600, expire: 86400 });
+    return rows.map((row) => ({
+      // 内部用のハッシュ(mgs-xxxxxxxx)はURLに出さず、読める名前をURLにする
+      slug: /^mgs-(actress-|genre-)?[0-9a-f]{8,}$/i.test(row.slug) ? row.name : row.slug,
+      name: row.name,
+      imageUrl: row.imageUrl || "",
+      count: Number(row.count) || 0,
+      views: Number(row.views) || 0,
+    }));
+  } catch (error) {
+    console.error("女優一覧の取得に失敗しました:", error?.message ?? error);
+    cacheLife("seconds");
+    return [];
+  }
+}
