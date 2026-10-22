@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
-import { useWorks } from "@/lib/works-context";
+import { useWorks, useWorksTotal } from "@/lib/works-context";
 import { matchesWorkSearch } from "@/lib/work-search";
 
 const searchFields = [
@@ -99,6 +99,7 @@ function HorizontalSlider({ children, title, subtitle }) {
 
 export default function VideosPage({ mode = "normal", actressImages = {} }) {
   const works = useWorks();
+  const totalWorks = useWorksTotal();
   const router = useRouter();
   const { t } = useT();
   const isVr = mode === "vr";
@@ -584,7 +585,7 @@ export default function VideosPage({ mode = "normal", actressImages = {} }) {
                 </Link>
               </div>
               <p className="mt-2 text-sm text-zinc-400">
-                {t("count", { n: filteredWorks.length })}
+                {t("count", { n: (isVr ? filteredWorks.length : totalWorks).toLocaleString() })}
               </p>
             </div>
 
